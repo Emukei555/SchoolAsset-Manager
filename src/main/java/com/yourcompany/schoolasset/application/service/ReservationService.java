@@ -2,6 +2,7 @@ package com.yourcompany.schoolasset.application.service;
 
 import com.yourcompany.schoolasset.domain.model.asset.Model;
 import com.yourcompany.schoolasset.domain.model.asset.ModelRepository;
+import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.faculty.FacultyRepository;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
@@ -11,7 +12,6 @@ import com.yourcompany.schoolasset.domain.model.student.Student;
 import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
 import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import com.yourcompany.schoolasset.domain.exception.BusinessException;
-import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.web.dto.ReservationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
