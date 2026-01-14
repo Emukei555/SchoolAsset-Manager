@@ -1,9 +1,5 @@
 package com.yourcompany.schoolasset.domain.model.asset;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
 
 public enum AssetStatus {
     AVAILABLE,   // 利用可能

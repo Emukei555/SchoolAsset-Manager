@@ -2,7 +2,8 @@ package com.yourcompany.schoolasset.domain.model.asset;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+// のちに使用する
+//import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity

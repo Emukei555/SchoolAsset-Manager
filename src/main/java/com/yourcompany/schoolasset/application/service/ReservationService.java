@@ -1,14 +1,16 @@
 package com.yourcompany.schoolasset.application.service;
 
-import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.domain.model.asset.Model;
+import com.yourcompany.schoolasset.domain.model.asset.ModelRepository;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
-import com.yourcompany.schoolasset.domain.model.asset.ModelRepository;
+import com.yourcompany.schoolasset.domain.model.reservation.Reservation.ReservationStatus;
+import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.domain.model.student.Student;
 import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
-import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
+import com.yourcompany.schoolasset.domain.exception.BusinessException;
+import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.web.dto.ReservationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,45 +30,52 @@ public class ReservationService {
     @Transactional
     public void createReservation(Long studentId, ReservationRequest request) {
 
-        // 1. 学生の存在確認と資格チェック
+        // ==========================================
+        // 1. 学生の資格チェック (Domain Logic)
+        // ==========================================
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("指定された学生が見つかりません"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED)); // または適切なNOT_FOUNDエラー
 
+        // Repositoryから判断材料を集める
+        int activeLoans = loanRecordRepository.countActiveLoansByStudentId(studentId);
+        boolean hasOverdue = loanRecordRepository.existsOverdueByStudentId(studentId, LocalDateTime.now());
 
-        int activeLoans = loanRecordRepository.countActiveLoansByStudentId(studentId); // 未返却数
-        boolean overdue = loanRecordRepository.existsOverdueByStudentId(studentId, LocalDateTime.now());     // 延滞有無
-
-        if (!student.canBorrow(activeLoans, overdue)) {
-            throw new RuntimeException("貸出条件を満たしていません");
+        // Domainに判断させる
+        if (!student.canBorrow(activeLoans, hasOverdue)) {
+            // 細かい理由は省き、代表して延滞等のエラーを返す（必要ならErrorCodeを分岐させる）
+            throw new BusinessException(ErrorCode.SUSPENDED);
         }
 
+        // ==========================================
         // 2. 機材モデルの存在確認
+        // ==========================================
         Model model = modelRepository.findById(request.modelId())
-                .orElseThrow(() -> new RuntimeException("指定された機材モデルが見つかりません"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.OUT_OF_STOCK)); // モデル自体がない場合も在庫なし扱い等
 
-        // 3. 有効在庫(X)の計算 (ここがMVPの肝)
+        // ==========================================
+        // 3. 有効在庫(X)の計算
+        // ==========================================
+        int totalQuantity = model.getTotalQuantity();
+        int currentLoans = loanRecordRepository.countActiveLoansByModelId(model.getId());
         int overlappingReservations = reservationRepository.countOverlappingReservations(
-                model.getId(),
-                request.startAt(),
-                request.endAt()
-        );
+                model.getId(), request.startAt(), request.endAt());
 
-        int total = model.getTotalQuantity(); //
-        int loans = loanRecordRepository.countActiveLoansByModelId(model.getId());
-        int reservations = reservationRepository.countOverlappingReservations(model.getId(), request.startAt(), request.endAt()); //
-
-        int effectiveStock = total - (loans + reservations);
+        // ★ 有効在庫 = 総数 - (貸出中 + 予約済み)
+        int effectiveStock = totalQuantity - (currentLoans + overlappingReservations);
 
         if (effectiveStock <= 0) {
-            throw new BusinessException(ErrorCode.OUT_OF_STOCK); //
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
-        // 4. 予約の保存
+
+        // ==========================================
+        // 4. 予約の確定と保存
+        // ==========================================
         Reservation reservation = new Reservation();
         reservation.setStudent(student);
         reservation.setModel(model);
         reservation.setStartAt(request.startAt());
         reservation.setEndAt(request.endAt());
-        reservation.setStatus(Reservation.ReservationStatus.PENDING); // 初期状態は承認待ち
+        reservation.setStatus(ReservationStatus.PENDING); // 承認待ち
 
         reservationRepository.save(reservation);
     }
