@@ -39,11 +39,10 @@ Notion: [リンクを貼る]
 
 ## データベース設計 (ER図)
 
-以下はシステムのER図です（Mermaid記法）。
-
 ```mermaid
 erDiagram
-    %% ユーザー関連（継承構造）
+    %% テーマカラー（GitHubダーク/ライトで自然に見える）
+    %% ユーザーグループ（青系）
     USERS {
         bigint id PK
         varchar email UK
@@ -79,7 +78,7 @@ erDiagram
         timestamptz updated_at
     }
 
-    %% 機材関連
+    %% 機材グループ（緑系）
     CATEGORIES {
         bigint id PK
         varchar name UK
@@ -109,7 +108,7 @@ erDiagram
         timestamptz updated_at
     }
 
-    %% 予約・貸出関連
+    %% 予約・貸出グループ（紫系）
     RESERVATIONS {
         bigint id PK
         bigint student_id FK
@@ -139,18 +138,18 @@ erDiagram
         timestamptz updated_at
     }
 
-    %% リレーション
-    USERS ||--|| STUDENTS     : "1:1 (継承)"
-    USERS ||--|| FACULTIES    : "1:1 (継承)"
-    USERS ||--|| CLERKS       : "1:1 (継承)"
+    %% リレーション（モダンなラベル）
+    USERS ||--|| STUDENTS     : "1:1 継承"
+    USERS ||--|| FACULTIES    : "1:1 継承"
+    USERS ||--|| CLERKS       : "1:1 継承"
 
-    CATEGORIES ||--o{ MODELS  : "1:N"
-    MODELS     ||--o{ ASSETS  : "1:N"
-    MODELS     ||--o{ RESERVATIONS : "1:N"
-    STUDENTS   ||--o{ RESERVATIONS : "1:N"
-    FACULTIES  ||--o{ RESERVATIONS : "1:N (approved_by)"
+    CATEGORIES ||--o{ MODELS  : "1:N 分類"
+    MODELS     ||--o{ ASSETS  : "1:N 個体管理"
+    MODELS     ||--o{ RESERVATIONS : "1:N 予約対象"
+    STUDENTS   ||--o{ RESERVATIONS : "1:N 申請者"
+    FACULTIES  ||--o{ RESERVATIONS : "1:N 承認者"
 
-    ASSETS     ||--o{ LOAN_RECORDS : "1:N"
-    STUDENTS   ||--o{ LOAN_RECORDS : "1:N"
-    CLERKS     ||--o{ LOAN_RECORDS : "1:N (returned_by)"
-    RESERVATIONS ||--o| LOAN_RECORDS : "1:0..1 (予約→貸出昇格)"
+    ASSETS     ||--o{ LOAN_RECORDS : "1:N 貸出実績"
+    STUDENTS   ||--o{ LOAN_RECORDS : "1:N 借用者"
+    CLERKS     ||--o{ LOAN_RECORDS : "1:N 返却処理者"
+    RESERVATIONS ||--o| LOAN_RECORDS : "1:0..1 予約→貸出昇格"
