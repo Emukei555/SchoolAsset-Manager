@@ -99,7 +99,7 @@ public class ReservationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED));
 
         // 2. 【ドメインへの委譲】
-        reservation.approve(facultyId);
+        reservation.approve(faculty);
 
         // 3. 【永続化】
         // TODO [TECH-DEBT] saveを明示的に呼ぶか、Dirty Checkingに任せるか検討
