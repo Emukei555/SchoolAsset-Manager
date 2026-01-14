@@ -1,37 +1,64 @@
 package com.yourcompany.schoolasset.domain.model.loan;
 
 import com.yourcompany.schoolasset.domain.model.asset.Asset;
-import com.yourcompany.schoolasset.domain.model.asset.Model;
-import com.yourcompany.schoolasset.domain.model.student.Student;
-import jakarta.persistence.*;
+import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import com.yourcompany.schoolasset.domain.model.user.Clerk;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "loan_records")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class LoanRecord {
 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // --- ここを追加してください ---
     @Id
-    private Long id1;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    // ---------------------------
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "asset_id")
+    @OneToOne
+    @JoinColumn(name = "reservation_id", nullable = false)
+    private Reservation reservation;
+
+    @ManyToOne
+    @JoinColumn(name = "asset_id", nullable = false)
     private Asset asset;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "model_id")
-    private Model model;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
-    private Student student;
+    @ManyToOne
+    @JoinColumn(name = "clerk_id", nullable = false)
+    private Clerk clerk;
 
     private LocalDateTime loanedAt;
     private LocalDateTime dueDate;
-    private LocalDateTime returnedAt; // これがnullなら貸出中とみなす
+    private LocalDateTime returnedAt;
+
+    public void markAsReturned() {
+        this.returnedAt = LocalDateTime.now();
+    }
+
+    // ファクトリーメソッド（作成ロジック）
+    public static LoanRecord create(Reservation reservation, Asset asset, Clerk clerk) {
+        LoanRecord record = new LoanRecord();
+        record.reservation = reservation;
+        record.asset = asset;
+        record.clerk = clerk;
+        record.loanedAt = LocalDateTime.now();
+        record.dueDate = reservation.getEndAt();
+        return record;
+    }
 }

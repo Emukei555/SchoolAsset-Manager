@@ -1,5 +1,7 @@
 package com.yourcompany.schoolasset.domain.model.asset;
 
+import com.yourcompany.schoolasset.domain.exception.BusinessException;
+import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +25,14 @@ public class Asset {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AssetStatus status = AssetStatus.AVAILABLE;
+
+    public void rentOut() {
+        // 在庫ロックの整合性チェック
+        if (this.status != AssetStatus.AVAILABLE) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK); // "在庫がありません"
+        }
+        this.status = AssetStatus.LENT; // ステータス変更
+    }
 
     private String location;
     private String note;

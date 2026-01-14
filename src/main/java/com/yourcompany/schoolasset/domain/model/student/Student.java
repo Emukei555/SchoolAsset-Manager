@@ -34,9 +34,6 @@ public class Student {
             throw new BusinessException(ErrorCode.OVERDUE_RESTRICTION); //
         }
 
-        if (activeLoanCount >= 3) {
-            return false;
-        }
-        return true;
+        return activeLoanCount < 3;
     }
 }

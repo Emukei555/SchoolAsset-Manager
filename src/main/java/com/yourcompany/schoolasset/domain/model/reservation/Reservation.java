@@ -1,8 +1,10 @@
 package com.yourcompany.schoolasset.domain.model.reservation;
 
+import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.domain.model.asset.Model;
 import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.student.Student;
+import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,7 +44,14 @@ public class Reservation {
     private LocalDateTime approvedAt;
 
     public enum ReservationStatus {
-        PENDING, APPROVED, REJECTED, CANCELLED
+        PENDING, APPROVED, REJECTED, CANCELLED, LENT;
+    }
+
+    public void markAsLent() {
+        if (this.status != ReservationStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
+        }
+        this.status = ReservationStatus.LENT;
     }
 
     /**

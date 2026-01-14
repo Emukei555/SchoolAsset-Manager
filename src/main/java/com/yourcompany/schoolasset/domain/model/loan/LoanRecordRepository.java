@@ -12,7 +12,9 @@ public interface LoanRecordRepository extends JpaRepository<LoanRecord, Long> {
     /**
      * 特定の学生が現在借りている（未返却の）機材数をカウントする
      */
-    @Query("SELECT COUNT(lr) FROM LoanRecord lr WHERE lr.student.userId = :studentId AND lr.returnedAt IS NULL")
+    @Query("SELECT COUNT(lr) FROM LoanRecord lr " +
+            "WHERE lr.reservation.student.userId = :studentId " +
+            "AND lr.returnedAt IS NULL")
     int countActiveLoansByStudentId(@Param("studentId") Long studentId);
 
     /**
@@ -20,12 +22,14 @@ public interface LoanRecordRepository extends JpaRepository<LoanRecord, Long> {
      */
     @Query("""
        SELECT COUNT(lr) > 0 FROM LoanRecord lr 
-       WHERE lr.student.userId = :studentId 
+       WHERE lr.reservation.student.userId = :studentId 
          AND lr.returnedAt IS NULL 
          AND lr.dueDate < :now
    """)
     boolean existsOverdueByStudentId(@Param("studentId") Long studentId, @Param("now") LocalDateTime now);
 
-    @Query("SELECT COUNT(lr) FROM LoanRecord lr WHERE lr.model.id = :modelId AND lr.returnedAt IS NULL")
-    int countActiveLoansByModelId(@Param("modelId") Long modelId);
+    @Query("SELECT COUNT(lr) FROM LoanRecord lr " +
+            "WHERE lr.asset.model = :modelName " +
+            "AND lr.returnedAt IS NULL")
+    int countActiveLoansByModelName(@Param("modelName") String modelName);
 }

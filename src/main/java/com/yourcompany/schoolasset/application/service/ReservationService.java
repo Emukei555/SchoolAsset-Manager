@@ -58,7 +58,7 @@ public class ReservationService {
         // 3. 有効在庫(X)の計算
         // ==========================================
         int totalQuantity = model.getTotalQuantity();
-        int currentLoans = loanRecordRepository.countActiveLoansByModelId(model.getId());
+        int currentLoans = loanRecordRepository.countActiveLoansByModelName(model.getName());
         int overlappingReservations = reservationRepository.countOverlappingReservations(
                 model.getId(), request.startAt(), request.endAt());
 
