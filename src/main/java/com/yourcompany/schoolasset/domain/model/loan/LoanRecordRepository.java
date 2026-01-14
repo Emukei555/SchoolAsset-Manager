@@ -1,19 +1,31 @@
 package com.yourcompany.schoolasset.domain.model.loan;
 
-// 後々使う事になるimport
-//import com.yourcompany.schoolasset.SchoolAssetManagerApplication.java.domain.model.asset.Model;
-//import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import com.yourcompany.schoolasset.application.service.ReservationService;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-// LoanRecordエンティティもまだ無い場合は、一旦Objectや仮クラスで逃げるか、Repositoryだけ定義しておきます
-// 今回はエラー回避のため、ジェネリクスを一旦省略するか、LoanRecordクラスを作ってから定義します。
-// ここではServiceのコンパイルを通すため、最低限のメソッドを持つインターフェースにします。
+import java.time.LocalDateTime;
 
-@Repository
-public interface LoanRecordRepository {
-    // JpaRepositoryを継承するとEntityが必要になるので、一旦普通のインターフェースとして定義
+public interface LoanRecordRepository extends JpaRepository<LoanRecord, Long> {
 
-    default int countActiveLoansByModelId(Long modelId) {
-        return 0; // 仮実装
-    }
+    /**
+     * 特定の学生が現在借りている（未返却の）機材数をカウントする
+     */
+    @Query("SELECT COUNT(lr) FROM LoanRecord lr WHERE lr.student.userId = :studentId AND lr.returnedAt IS NULL")
+    int countActiveLoansByStudentId(@Param("studentId") Long studentId);
+
+    /**
+     * 特定の学生に延滞（期限を過ぎて未返却）の機材があるか確認する
+     */
+    @Query("""
+       SELECT COUNT(lr) > 0 FROM LoanRecord lr 
+       WHERE lr.student.userId = :studentId 
+         AND lr.returnedAt IS NULL 
+         AND lr.dueDate < :now
+   """)
+    boolean existsOverdueByStudentId(@Param("studentId") Long studentId, @Param("now") LocalDateTime now);
+
+    @Query("SELECT COUNT(lr) FROM LoanRecord lr WHERE lr.model.id = :modelId AND lr.returnedAt IS NULL")
+    int countActiveLoansByModelId(@Param("modelId") Long modelId);
 }

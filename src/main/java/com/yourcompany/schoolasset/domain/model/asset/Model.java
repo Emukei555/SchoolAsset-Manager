@@ -2,10 +2,10 @@ package com.yourcompany.schoolasset.domain.model.asset;
 
 
 import jakarta.persistence.*;
-import jdk.jfr.Category;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.yourcompany.schoolasset.domain.model.asset.Category;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;

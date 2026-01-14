@@ -1,6 +1,8 @@
 package com.yourcompany.schoolasset.domain.model.student;
 
+import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.domain.model.user.User;
+import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,8 +25,18 @@ public class Student {
     /**
      * 貸出可能かどうかを判定するドメインロジック
      */
-    public boolean canBorrow() {
-        // 貸出停止フラグが立っていれば借りられない
-        return !isSuspended;
+    public boolean canBorrow(int activeLoanCount, boolean hasOverdueItems) {
+        if (this.isSuspended){
+            return false;
+        }
+
+        if (hasOverdueItems) {
+            throw new BusinessException(ErrorCode.OVERDUE_RESTRICTION); //
+        }
+
+        if (activeLoanCount >= 3) {
+            return false;
+        }
+        return true;
     }
 }

@@ -3,8 +3,6 @@ package com.yourcompany.schoolasset.domain.model.reservation;
 import com.yourcompany.schoolasset.domain.model.asset.Model;
 import com.yourcompany.schoolasset.domain.model.student.Student;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,21 +17,22 @@ public class Reservation {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
+    @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "model_id")
+    @JoinColumn(name = "model_id", nullable = false)
     private Model model;
 
+    @Column(nullable = false)
     private LocalDateTime startAt;
+
+    @Column(nullable = false)
     private LocalDateTime endAt;
 
     @Enumerated(EnumType.STRING)
-    private ReservationStatus status;
-
-    public void setAt(@NotNull(message = "終了日時は必須です") @Future(message = "終了日時は未来を指定してください") LocalDateTime localDateTime) {
-    }
+    @Column(nullable = false)
+    private ReservationStatus status = ReservationStatus.PENDING;
 
     public enum ReservationStatus {
         PENDING, APPROVED, REJECTED, CANCELLED
