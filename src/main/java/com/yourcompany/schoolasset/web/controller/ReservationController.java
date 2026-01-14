@@ -29,4 +29,15 @@ public class ReservationController {
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PatchMapping("/{id}/approve")
+    // TODO: @PreAuthorize("hasRole('FACULTY')") で教員のみに制限
+    public ResponseEntity<Void> approve(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails // 教員情報
+    ) {
+        // TODO: reservationService.approveReservation(id, userDetails.getUser().getId())
+        return ResponseEntity.ok().build();
+    }
+
 }

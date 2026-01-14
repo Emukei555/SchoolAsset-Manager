@@ -2,6 +2,7 @@ package com.yourcompany.schoolasset.application.service;
 
 import com.yourcompany.schoolasset.domain.model.asset.Model;
 import com.yourcompany.schoolasset.domain.model.asset.ModelRepository;
+import com.yourcompany.schoolasset.domain.model.faculty.FacultyRepository;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation.ReservationStatus;
@@ -26,6 +27,7 @@ public class ReservationService {
     private final ModelRepository modelRepository;
     private final ReservationRepository reservationRepository;
     private final LoanRecordRepository loanRecordRepository;
+    private final FacultyRepository facultyRepository;
 
     @Transactional
     public void createReservation(Long studentId, ReservationRequest request) {
@@ -77,6 +79,30 @@ public class ReservationService {
         reservation.setEndAt(request.endAt());
         reservation.setStatus(ReservationStatus.PENDING); // 承認待ち
 
+        reservationRepository.save(reservation);
+    }
+
+    /**
+     * 予約を承認する（教員用）
+     * /@param reservationId 予約ID
+     * /@param facultyId 承認する教員のID
+     */
+    @Transactional
+    public void approveReservation(Long reservationId, Long facultyId) {
+        // 1. 【取得】
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)); // TODO: 専用のエラーコード
+
+        // 2. 【取得】承認を行う教員の情報を取得
+        // TODO [FAC-301] 教員情報の取得と存在チェック
+        Faculty faculty = facultyRepository.findById(facultyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED));
+
+        // 2. 【ドメインへの委譲】
+        reservation.approve(facultyId);
+
+        // 3. 【永続化】
+        // TODO [TECH-DEBT] saveを明示的に呼ぶか、Dirty Checkingに任せるか検討
         reservationRepository.save(reservation);
     }
 }
