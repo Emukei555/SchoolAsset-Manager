@@ -52,16 +52,16 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // --- テスト (重複を削除し、必要なものを整理) ---
-    // 基本セット (JUnit 5, Mockito, AssertJなど)
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    // Security テスト (csrf() や認証のシミュレートに必須)
+    testImplementation 'org.springframework.security:spring-security-test'
 
-    // Testcontainers (テストでDockerを使うための機能)
+    // Docker を使ったテスト支援 (Testcontainers)
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
 
-    // ArchUnit (アーキテクチャテスト)
+    // アーキテクチャやランタイムの設定
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'net.jqwik:jqwik:1.9.2'
