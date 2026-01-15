@@ -1,7 +1,9 @@
 package com.yourcompany.schoolasset.domain.model.loan;
 
+import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.domain.model.asset.Asset;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
+import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -18,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.prefs.BackingStoreException;
 
 @Entity
 @Table(name = "loan_records")
@@ -48,6 +51,9 @@ public class LoanRecord {
     private LocalDateTime returnedAt;
 
     public void markAsReturned() {
+        if (this.returnedAt != null) {
+            throw new BusinessException(ErrorCode.ALREADY_RETURNED); // "既に返却済みです"
+        }
         this.returnedAt = LocalDateTime.now();
     }
 

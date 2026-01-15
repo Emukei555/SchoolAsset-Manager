@@ -61,4 +61,11 @@ public class Reservation {
         this.approvedBy = faculty;
         this.approvedAt = LocalDateTime.now();
     }
+
+    public void complete() {
+        if (this.status != ReservationStatus.LENT) {
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
+        }
+        this.status = ReservationStatus.CANCELLED;
+    }
 }

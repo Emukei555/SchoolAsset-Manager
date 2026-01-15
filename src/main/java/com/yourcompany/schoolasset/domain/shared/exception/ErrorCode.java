@@ -11,11 +11,12 @@ public enum ErrorCode {
     SUSPENDED("STU-002", HttpStatus.FORBIDDEN, "貸出停止中です。"),
     OVERDUE_RESTRICTION("STU-003", HttpStatus.FORBIDDEN, "延滞機材があります。"),
     OUT_OF_STOCK("AST-001", HttpStatus.CONFLICT, "在庫がありません。"),
+    ALREADY_RETURNED("AST-005", HttpStatus.CONFLICT, "既に返却済みです。"),
     UNDER_REPAIR("AST-002", HttpStatus.CONFLICT, "修理中です。"),
     RESERVATION_CONFLICT("AST-003", HttpStatus.CONFLICT, "予約が重複しています。"),
     NOT_FOUND("AST-004", HttpStatus.NOT_FOUND, "機材が存在しません"),
 
-    INVALID_RESERVATION_STATUS("RES-001", HttpStatus.CONFLICT, "この予約は既に処理済みのため、操作を継続できません。");
+    INVALID_RESERVATION_STATUS("RES-002", HttpStatus.CONFLICT, "この予約は既に処理済みのため、操作を継続できません。");
 
     // 2. フィールド定義
     private final String code;

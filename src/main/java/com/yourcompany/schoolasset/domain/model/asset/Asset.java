@@ -34,6 +34,13 @@ public class Asset {
         this.status = AssetStatus.LENT; // ステータス変更
     }
 
+    public void returnBack() {
+        if (this.status == AssetStatus.AVAILABLE) {
+            return;
+        }
+        this.status = AssetStatus.AVAILABLE;
+    }
+
     private String location;
     private String note;
 }
