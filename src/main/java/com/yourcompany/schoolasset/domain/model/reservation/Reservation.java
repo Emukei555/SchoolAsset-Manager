@@ -63,9 +63,12 @@ public class Reservation {
     }
 
     public void complete() {
+        // 1. 完了できるか確認する
         if (this.status != ReservationStatus.LENT) {
             throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
         }
-        this.status = ReservationStatus.CANCELLED;
+
+        // 2. ステータスを「完了」に変更する
+        this.status = ReservationStatus.COMPLETED;
     }
 }
