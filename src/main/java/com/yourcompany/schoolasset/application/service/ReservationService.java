@@ -6,7 +6,7 @@ import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.faculty.FacultyRepository;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
-import com.yourcompany.schoolasset.domain.model.reservation.Reservation.ReservationStatus;
+import com.yourcompany.schoolasset.domain.model.reservation.ReservationStatus;
 import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.domain.model.student.Student;
 import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
