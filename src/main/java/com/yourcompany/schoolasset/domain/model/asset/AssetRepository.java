@@ -13,6 +13,6 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
 
     // 機材を排他ロック（FOR UPDATE）付きで取得する
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT a FROM Asset a WHERE a.id = :id")
-    Optional<Asset> findByIdWithLock(@Param("id") Long id);
+    @Query("select a from Asset a where a.id = :id")
+    Optional<Asset> findByIdWithLock(Long id);
 }

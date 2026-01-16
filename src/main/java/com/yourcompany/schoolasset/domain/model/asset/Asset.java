@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "assets")
@@ -25,6 +26,9 @@ public class Asset {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AssetStatus status = AssetStatus.AVAILABLE;
+
+    @Version
+    private Long version;
 
     public void rentOut() {
         // 在庫ロックの整合性チェック
