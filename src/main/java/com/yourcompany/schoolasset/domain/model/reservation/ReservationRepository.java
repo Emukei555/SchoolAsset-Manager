@@ -1,7 +1,6 @@
 package com.yourcompany.schoolasset.domain.model.reservation;
 
-// 後に実装
-//import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
+import com.yourcompany.schoolasset.domain.model.asset.Model;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,8 +16,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         SELECT COUNT(r) FROM Reservation r
         WHERE r.model.id = :modelId
           AND r.status = 'APPROVED'
-          AND r.startAt < :endAt
-          AND r.endAt > :startAt
+          AND r.period.startAt < :endAt
+          AND r.period.endAt > :startAt
     """)
     int countOverlappingReservations(
             @Param("modelId") Long modelId,

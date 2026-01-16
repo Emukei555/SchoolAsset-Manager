@@ -6,7 +6,9 @@ import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.faculty.FacultyRepository;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
+import com.yourcompany.schoolasset.domain.model.reservation.ReservationPeriod;
 import com.yourcompany.schoolasset.domain.model.reservation.ReservationStatus;
+import com.yourcompany.schoolasset.domain.model.asset.Model;
 import com.yourcompany.schoolasset.domain.model.reservation.ReservationRepository;
 import com.yourcompany.schoolasset.domain.model.student.Student;
 import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
@@ -34,61 +36,49 @@ public class ReservationService {
     @Transactional
     public void createReservation(Long studentId, ReservationRequest request) {
 
-        // ==========================================
-        // 1. 学生の資格チェック (Domain Logic)
-        // ==========================================
+        // 1. 学生の取得と資格チェック
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED)); // または適切なNOT_FOUNDエラー
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        // Repositoryから判断材料を集める
+        // 2. 予約期間(Value Object)の生成
+        // ここで「開始 > 終了」などのバリデーションが自動的に行われる
+        ReservationPeriod period = new ReservationPeriod(request.startAt(), request.endAt());
+
+        // 3. 資格チェック (Domain Logic)
         int activeLoans = loanRecordRepository.countActiveLoansByModelId(studentId);
         boolean hasOverdue = loanRecordRepository.existsOverdueByStudentId(studentId, LocalDateTime.now());
 
-        // Domainに判断させる
         if (!student.canBorrow(activeLoans, hasOverdue)) {
-            // 細かい理由は省き、代表して延滞等のエラーを返す（必要ならErrorCodeを分岐させる）
             throw new BusinessException(ErrorCode.SUSPENDED);
         }
 
-        // ==========================================
-        // 2. 機材モデルの存在確認
-        // ==========================================
+        // 4. 機材モデルの存在確認
         Model model = modelRepository.findById(request.modelId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.OUT_OF_STOCK)); // モデル自体がない場合も在庫なし扱い等
+                .orElseThrow(() -> new BusinessException(ErrorCode.OUT_OF_STOCK));
 
-        // ==========================================
-        // 3. 有効在庫(X)の計算
-        // ==========================================
+        // 5. 有効在庫の計算
         int totalQuantity = model.getTotalQuantity();
         int currentLoans = loanRecordRepository.countActiveLoansByModelId(model.getId());
-        int overlappingReservations = reservationRepository.countOverlappingReservations(
-                model.getId(), request.startAt(), request.endAt());
 
-        // ★ 有効在庫 = 総数 - (貸出中 + 予約済み)
+        // VOのメソッドを使って重複判定ができるようになります（Repository側もVO対応するとさらに綺麗になります）
+        int overlappingReservations = reservationRepository.countOverlappingReservations(
+                model.getId(), period.getStartAt(), period.getEndAt());
+
         int effectiveStock = totalQuantity - (currentLoans + overlappingReservations);
 
         if (effectiveStock <= 0) {
             throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
 
-        // ==========================================
-        // 4. 予約の確定と保存
-        // ==========================================
-        Reservation reservation = new Reservation();
-        reservation.setStudent(student);
-        reservation.setModel(model);
-        reservation.setStartAt(request.startAt());
-        reservation.setEndAt(request.endAt());
-        reservation.setStatus(ReservationStatus.PENDING); // 承認待ち
+        // 6. 予約エンティティの生成 (コンストラクタを使用)
+        // セッターを使わず、完全な状態でオブジェクトを作る
+        Reservation reservation = new Reservation(student, model, period);
 
         reservationRepository.save(reservation);
+        log.info("新規予約を作成しました。学生ID: {}, モデルID: {}, 期間: {} ~ {}",
+                studentId, model.getId(), period.getStartAt(), period.getEndAt());
     }
 
-    /**
-     * 予約を承認する（教員用）
-     * /@param reservationId 予約ID
-     * /@param facultyId 承認する教員のID
-     */
     @Transactional
     public void approveReservation(Long reservationId, Long facultyId) {
         Reservation reservation = reservationRepository.findById(reservationId)
@@ -97,11 +87,12 @@ public class ReservationService {
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED));
 
+        // ドメインモデル内の approve メソッドがステータス変更とバリデーションを担う
         reservation.approve(faculty);
 
-        // ★ ここで明示的に保存！
         reservationRepository.save(reservation);
 
-        log.info("予約の承認が完了しました。予約ID: {}, ステータス: {}", reservationId, reservation.getStatus());
+        log.info("予約の承認が完了しました。予約ID: {}, 承認者: {}, ステータス: {}",
+                reservationId, facultyId, reservation.getStatus());
     }
 }

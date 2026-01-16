@@ -22,8 +22,8 @@ public class Student {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "student_number", nullable = false, unique = true)
-    private String studentNumber;
+    @Embedded
+    private StudentNumber studentNumber;
 
     @Column(nullable = false)
     private Integer grade;

@@ -48,16 +48,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = new User();
                 user.setId(userId);
                 user.setEmail(email);
-                user.setRole(Role.valueOf(roleName));
-                user.setPasswordHash(""); // パスワードは認証済みなので不要
 
-                // 3. UserDetailsを作成
+                Role role = Role.valueOf(roleName);
+                user.setRole(role);
+                user.setPasswordHash("");
+
                 CustomUserDetails userDetails = new CustomUserDetails(user);
 
-                // 4. セキュリティコンテキストにセット
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities() // ここで ROLE_CLERK 等が返っているか確認
+                        );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }

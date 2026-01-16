@@ -3,6 +3,7 @@ package com.yourcompany.schoolasset.infrastructure.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -31,22 +32,19 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        // Swagger関連のパスを許可
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .anyRequest().authenticated()
-                )
-
-                // ステートレス設定（Cookie/Sessionを使わない）
+                // ★ 1. セッションをステートレス（無効）にする設定を追加
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-                // 認証プロバイダの登録
-                .authenticationProvider(authenticationProvider())
-
-                // JWTフィルターをUsernamePasswordAuthenticationFilterの前に配置
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/reservations").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/reservations/*/approve").hasRole("FACULTY")
+                        .requestMatchers("/api/v1/loans/**").hasRole("CLERK")
+                        .anyRequest().authenticated()
+                )
+                // ★ 2. これが最重要！JWTフィルターを有効にする
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

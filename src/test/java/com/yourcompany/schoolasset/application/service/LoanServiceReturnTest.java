@@ -2,11 +2,16 @@ package com.yourcompany.schoolasset.application.service;
 
 import com.yourcompany.schoolasset.domain.model.asset.Asset;
 import com.yourcompany.schoolasset.domain.model.asset.AssetStatus;
+import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecord;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.Reservation;
+import com.yourcompany.schoolasset.domain.model.reservation.ReservationPeriod;
 import com.yourcompany.schoolasset.domain.model.reservation.ReservationStatus;
+import com.yourcompany.schoolasset.domain.model.student.Student;
+import com.yourcompany.schoolasset.domain.model.student.StudentNumber;
 import com.yourcompany.schoolasset.domain.model.user.Clerk;
+import com.yourcompany.schoolasset.domain.model.asset.Model;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,19 +40,28 @@ class LoanServiceReturnTest {
         // --- 1. 準備 (Arrange) ---
         Long loanId = 1L;
 
+        // 必要な依存データの準備
         Asset mockAsset = new Asset();
         mockAsset.setStatus(AssetStatus.LENT);
 
-        // 【かな型】予約を「貸出中」として確実に準備する
-        Reservation mockReservation = new Reservation();
+        // Value Object の作成
+        StudentNumber sn = new StudentNumber("20230001"); // 8桁ルール
+        ReservationPeriod period = new ReservationPeriod(
+                LocalDateTime.now().minusDays(2),
+                LocalDateTime.now().plusDays(1)
+        );
 
-        // ★修正ポイント: 直接代入で確実に LENT にする（メソッド経由だとバリデーションで弾かれる可能性があるため）
-        mockReservation.setStatus(ReservationStatus.LENT);
+        // 予約の作成（最初は PENDING 状態）
+        Reservation mockReservation = new Reservation(new Student(), new Model(), period);
 
-        // もし setter がない場合、リフレクションを使って強制的に書き換えるか、
-        // 初期状態を制御できるファクトリメソッドを確認してください。
+        // 【重要】ドメインルールに従って LENT 状態まで遷移させる
+        // PENDING -> APPROVED
+        mockReservation.approve(new Faculty());
+        // APPROVED -> LENT
+        mockReservation.markAsLent();
 
         Clerk mockClerk = new Clerk();
+        // LoanRecordの作成
         LoanRecord mockLoanRecord = LoanRecord.create(mockReservation, mockAsset, mockClerk);
 
         when(loanRecordRepository.findById(loanId)).thenReturn(Optional.of(mockLoanRecord));
@@ -55,8 +70,11 @@ class LoanServiceReturnTest {
         loanService.returnLoan(loanId);
 
         // --- 3. 検証 (Assert) ---
-        // ここで期待値 COMPLETED と実際の値が一致するか確認
-        assertEquals(ReservationStatus.COMPLETED, mockReservation.getStatus(), "予約がCOMPLETEDになっていること");
-        // ... (以下略)
+        assertEquals(ReservationStatus.COMPLETED, mockReservation.getStatus(),
+                "予約がCOMPLETEDになっていること");
+        assertEquals(AssetStatus.AVAILABLE, mockAsset.getStatus(),
+                "機材がAVAILABLEに戻っていること");
+        assertNotNull(mockLoanRecord.getReturnedAt(),
+                "返却日時が記録されていること");
     }
 }

@@ -1,21 +1,25 @@
 package com.yourcompany.schoolasset.domain.model.faculty;
 
+import com.yourcompany.schoolasset.domain.model.user.User;
 import jakarta.persistence.*;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "faculties")
-@Getter @Setter
+@Getter
+@Setter
 public class Faculty {
+
     @Id
     @Column(name = "user_id")
-    private Long id; // usersテーブルのIDと同じ値が入る想定
+    private Long userId;
 
-    @Column(name = "faculty_code")
+    @OneToOne
+    @MapsId // UserのIDをそのままFacultyのPKとして使う設定
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "faculty_code", nullable = false)
     private String facultyCode;
-
-    // TODO [JIRA-FAC-102] 氏名などはUserテーブル側にあるので、必要に応じてOneToOneを検討
 }

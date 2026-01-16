@@ -2,11 +2,11 @@ package com.yourcompany.schoolasset.domain.model.reservation;
 
 import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.domain.model.asset.Model;
-import com.yourcompany.schoolasset.domain.model.reservation.ReservationStatus;
 import com.yourcompany.schoolasset.domain.model.faculty.Faculty;
 import com.yourcompany.schoolasset.domain.model.student.Student;
 import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reservations")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // 無闇な生成を防ぐ
 public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,11 +30,9 @@ public class Reservation {
     @JoinColumn(name = "model_id", nullable = false)
     private Model model;
 
-    @Column(nullable = false)
-    private LocalDateTime startAt;
-
-    @Column(nullable = false)
-    private LocalDateTime endAt;
+    // ★ startAt, endAt フィールドを削除し、period に集約
+    @Embedded
+    private ReservationPeriod period;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -44,6 +44,28 @@ public class Reservation {
 
     private LocalDateTime approvedAt;
 
+    /**
+     * 新規作成用コンストラクタ
+     */
+    public Reservation(Student student, Model model, ReservationPeriod period) {
+        this.student = student;
+        this.model = model;
+        this.period = period;
+        this.status = ReservationStatus.PENDING;
+    }
+
+    /**
+     * 予約を承認状態にする
+     */
+    public void approve(Faculty faculty) {
+        // ビジネスルール: 承認できるのはPENDING状態のみ
+        if (this.status != ReservationStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
+        }
+        this.status = ReservationStatus.APPROVED;
+        this.approvedBy = faculty;
+        this.approvedAt = LocalDateTime.now();
+    }
 
     public void markAsLent() {
         if (this.status != ReservationStatus.APPROVED) {
@@ -52,25 +74,19 @@ public class Reservation {
         this.status = ReservationStatus.LENT;
     }
 
-    /**
-     * 予約を承認状態にする
-     */
-    public void approve(Faculty faculty) {
-        // ステータスを更新する
-        this.status = ReservationStatus.APPROVED;
-
-        // 承認者と承認日時を記録する
-        this.approvedBy = faculty;
-        this.approvedAt = LocalDateTime.now();
-    }
-
     public void complete() {
-        // 1. 完了できるか確認する
         if (this.status != ReservationStatus.LENT) {
             throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
         }
-
-        // 2. ステータスを「完了」に変更する
         this.status = ReservationStatus.COMPLETED;
+    }
+
+    // 既存コードとの互換性のための委譲メソッド
+    public LocalDateTime getStartAt() {
+        return period.getStartAt();
+    }
+
+    public LocalDateTime getEndAt() {
+        return period.getEndAt();
     }
 }

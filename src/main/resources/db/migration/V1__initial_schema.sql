@@ -152,16 +152,19 @@ DO $$
     END $$;
 
 -- 8. 個体（Asset）
-CREATE TABLE IF NOT EXISTS assets (
-                                      id BIGSERIAL PRIMARY KEY,
-                                      model_id BIGINT NOT NULL REFERENCES models(id),
-                                      serial_number VARCHAR(100) UNIQUE NOT NULL,
-                                      status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE'
-                                          CHECK (status IN ('AVAILABLE', 'LENT', 'REPAIR', 'LOST', 'MAINTENANCE')),
-                                      location VARCHAR(100),
-                                      note TEXT,
-                                      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                                      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE assets (
+                        id BIGSERIAL PRIMARY KEY,
+                        model_id BIGINT NOT NULL REFERENCES models(id),
+                        serial_number VARCHAR(255) NOT NULL UNIQUE,
+                        status VARCHAR(50) NOT NULL,
+                        location VARCHAR(255),
+                        note TEXT,
+
+    -- ★これを追加してください (楽観的ロック用)
+                        version BIGINT DEFAULT 0,
+
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 DO $$
@@ -184,8 +187,7 @@ CREATE TABLE IF NOT EXISTS reservations (
                                             model_id BIGINT NOT NULL REFERENCES models(id),
                                             start_at TIMESTAMP WITH TIME ZONE NOT NULL,
                                             end_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                                            status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-                                                CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')),
+                                            status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'LENT', 'COMPLETED', 'CANCELLED')),
                                             approved_by BIGINT REFERENCES faculties(user_id),
                                             approved_at TIMESTAMP WITH TIME ZONE,
                                             reason TEXT,
@@ -212,12 +214,19 @@ CREATE TABLE IF NOT EXISTS loan_records (
                                             id BIGSERIAL PRIMARY KEY,
                                             reservation_id BIGINT REFERENCES reservations(id),
                                             asset_id BIGINT NOT NULL REFERENCES assets(id),
-                                            model_id BIGINT NOT NULL REFERENCES models(id),  -- 必須: 在庫計算用
+                                            model_id BIGINT NOT NULL REFERENCES models(id),
                                             student_id BIGINT NOT NULL REFERENCES students(user_id),
+
+    -- ★ ここを追加：貸出処理を行った事務員
+                                            clerk_id BIGINT NOT NULL REFERENCES clerks(user_id),
+
                                             loaned_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                             due_date TIMESTAMP WITH TIME ZONE NOT NULL,
                                             returned_at TIMESTAMP WITH TIME ZONE,
+
+    -- 返却処理を行った事務員（返却時までNULLを許容）
                                             returned_by BIGINT REFERENCES clerks(user_id),
+
                                             note TEXT,
                                             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

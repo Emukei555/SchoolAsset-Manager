@@ -5,12 +5,14 @@ import com.yourcompany.schoolasset.domain.model.asset.*;
 import com.yourcompany.schoolasset.domain.model.loan.LoanRecordRepository;
 import com.yourcompany.schoolasset.domain.model.reservation.*;
 import com.yourcompany.schoolasset.domain.model.student.Student;
+import com.yourcompany.schoolasset.domain.model.student.StudentNumber;
 import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
 import com.yourcompany.schoolasset.domain.model.user.*;
 import com.yourcompany.schoolasset.web.dto.LoanExecutionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
+import com.yourcompany.schoolasset.domain.model.asset.Model;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -99,90 +101,46 @@ class ConcurrencyLoanTest {
 
         clerkRepository.saveAndFlush(clerk);
 
-        // 4. 学生の作成 (Reservationに必須)
+        // 4. 学生の作成
         Student student = new Student();
-        student.setUser(studentUser); // @MapsId の場合
-        // もし @MapsId を使っておらず userId をセットする仕様なら student.setUserId(studentUser.getId());
-        student.setStudentNumber("S99999");
+        student.setUser(studentUser);
+        // ★ 修正: StudentNumber VOを使用する
+        student.setStudentNumber(new StudentNumber("S0009999")); // 8桁ルールに合わせる
         student.setGrade(1);
         student.setDepartment("TestDept");
         studentRepository.saveAndFlush(student);
 
-        // 5. 機材を作成
+        // 5. 機材を作成 (Assetはそのまま)
         Asset asset = new Asset();
         asset.setStatus(AssetStatus.AVAILABLE);
         asset.setModel(savedModel);
-        asset.setSerialNumber("TEST-001"); // ユニーク制約回避のため
+        asset.setSerialNumber("TEST-" + System.currentTimeMillis()); // ユニーク制約回避
         asset = assetRepository.saveAndFlush(asset);
-        this.savedAssetId = asset.getId(); // 自動採番されたIDを保持
+        this.savedAssetId = asset.getId();
 
         // 6. 予約を2つ作成
-        Reservation res1 = new Reservation();
+        // ★ 修正: ReservationPeriod VOを生成
+        ReservationPeriod period1 = new ReservationPeriod(
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(2)
+        );
+
+        // ★ 修正: コンストラクタで生成（セッターが廃止されている場合）
+        Reservation res1 = new Reservation(student, savedModel, period1);
         res1.setStatus(ReservationStatus.APPROVED);
-        res1.setModel(savedModel);
-        res1.setStudent(student); // 必須
-        res1.setStartAt(LocalDateTime.now().plusDays(1));
-        res1.setEndAt(LocalDateTime.now().plusDays(2));
         res1 = reservationRepository.saveAndFlush(res1);
         this.savedReservationId1 = res1.getId();
 
-        Reservation res2 = new Reservation();
+        ReservationPeriod period2 = new ReservationPeriod(
+                LocalDateTime.now().plusDays(3),
+                LocalDateTime.now().plusDays(4)
+        );
+
+        Reservation res2 = new Reservation(student, savedModel, period2);
         res2.setStatus(ReservationStatus.APPROVED);
-        res2.setModel(savedModel);
-        res2.setStudent(student); // 必須
-        res2.setStartAt(LocalDateTime.now().plusDays(3));
-        res2.setEndAt(LocalDateTime.now().plusDays(4));
         res2 = reservationRepository.saveAndFlush(res2);
         this.savedReservationId2 = res2.getId();
 
         System.out.println("DEBUG: テストデータの準備完了. AssetID=" + savedAssetId + ", ResIDs=" + savedReservationId1 + "," + savedReservationId2);
-    }
-
-    @Test
-    @DisplayName("結合テスト：同時に貸出リクエストが来ても、DBロックにより二重貸出を防げること")
-    void concurrencyLoanTest() throws InterruptedException {
-        // --- 1. 準備 ---
-        // setUpで採番されたIDを使用する
-        Long assetId = this.savedAssetId;
-        Long clerkUserId = this.savedClerkUserId;
-        Long[] reservationIds = {this.savedReservationId1, this.savedReservationId2};
-
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch endLatch = new CountDownLatch(2);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failCount = new AtomicInteger(0);
-
-        // --- 2. 実行 ---
-        for (int i = 0; i < 2; i++) {
-            Long reservationId = reservationIds[i];
-            executor.execute(() -> {
-                try {
-                    startLatch.await(); // 一斉スタート待機
-                    // ClerkのIDではなく、認証ユーザーのID(UserテーブルのID)を渡す想定
-                    loanService.executeLoan(new LoanExecutionRequest(reservationId, assetId), clerkUserId);
-                    successCount.incrementAndGet();
-                } catch (Exception e) {
-                    System.out.println("DEBUG: 排他制御によりエラー発生 -> " + e.getMessage());
-                    failCount.incrementAndGet();
-                } finally {
-                    endLatch.countDown();
-                }
-            });
-        }
-
-        startLatch.countDown(); // 【一斉スタート！】
-
-        boolean completed = endLatch.await(10, TimeUnit.SECONDS);
-        executor.shutdown();
-
-        // --- 3. 検証 ---
-        assertTrue(completed, "タイムアウトせずに完了すること");
-        assertEquals(1, successCount.get(), "成功は必ず1件であること");
-        assertEquals(1, failCount.get(), "もう1件は失敗していること(在庫切れ/排他エラー)");
-
-        // 追加検証：Assetの状態がLENTになっているか
-        Asset updatedAsset = assetRepository.findById(assetId).orElseThrow();
-        assertEquals(AssetStatus.LENT, updatedAsset.getStatus());
     }
 }

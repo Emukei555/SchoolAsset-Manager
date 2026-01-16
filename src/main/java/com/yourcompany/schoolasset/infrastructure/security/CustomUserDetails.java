@@ -18,7 +18,8 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // ROLE_STUDENT のようにプレフィックスを付けるのが慣例
+        // Enumの Role名（CLERK）の前に "ROLE_" を付与して返す
+        // これにより .hasRole("CLERK") と合致するようになります
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
