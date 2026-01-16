@@ -24,7 +24,6 @@ public class AssetSearchController {
         Page<Model> models = modelRepository.searchModels(categoryId, keyword, pageable);
 
         // EntityをDTOに変換して返却
-        // TODO:ここも
         Page<ModelResponse> response = models.map(ModelResponse::fromEntity);
         return ResponseEntity.ok(response);
     }
