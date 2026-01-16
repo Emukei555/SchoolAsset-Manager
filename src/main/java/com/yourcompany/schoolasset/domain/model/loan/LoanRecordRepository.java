@@ -12,10 +12,8 @@ public interface LoanRecordRepository extends JpaRepository<LoanRecord, Long> {
     /**
      * 特定の学生が現在借りている（未返却の）機材数をカウントする
      */
-    @Query("SELECT COUNT(lr) FROM LoanRecord lr " +
-            "WHERE lr.reservation.student.userId = :studentId " +
-            "AND lr.returnedAt IS NULL")
-    int countActiveLoansByStudentId(@Param("studentId") Long studentId);
+    @Query("SELECT COUNT(lr) FROM LoanRecord lr WHERE lr.asset.model.id = :modelId AND lr.returnedAt IS NULL")
+    int countActiveLoansByModelId(@Param("modelId") Long modelId);
 
     /**
      * 特定の学生に延滞（期限を過ぎて未返却）の機材があるか確認する

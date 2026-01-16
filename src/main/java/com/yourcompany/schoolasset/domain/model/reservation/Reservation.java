@@ -56,8 +56,10 @@ public class Reservation {
      * 予約を承認状態にする
      */
     public void approve(Faculty faculty) {
-        // ... (以前実装したバリデーション)
+        // ステータスを更新する
         this.status = ReservationStatus.APPROVED;
+
+        // 承認者と承認日時を記録する
         this.approvedBy = faculty;
         this.approvedAt = LocalDateTime.now();
     }

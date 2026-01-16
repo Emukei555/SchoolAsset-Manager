@@ -56,8 +56,13 @@ public class JwtTokenProvider {
             return false;
         }
     }
-    // 仮実装：とりあえずコンパイルを通すために適当なメールアドレスを返す
+
     public String getUsernameFromToken(String token) {
-        return "student@school.com";
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
     }
 }

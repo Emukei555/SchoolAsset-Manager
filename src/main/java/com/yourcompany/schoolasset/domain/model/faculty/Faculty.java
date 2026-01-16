@@ -11,9 +11,10 @@ import lombok.Setter;
 @Getter @Setter
 public class Faculty {
     @Id
+    @Column(name = "user_id")
     private Long id; // usersテーブルのIDと同じ値が入る想定
 
-    @Column(name = "faculty_code", unique = true)
+    @Column(name = "faculty_code")
     private String facultyCode;
 
     // TODO [JIRA-FAC-102] 氏名などはUserテーブル側にあるので、必要に応じてOneToOneを検討

@@ -11,14 +11,13 @@ public record ModelResponse(
 ) {
     /**
      * EntityからDTOへ変換する静的メソッド
-     * AssetSearchController.java からメソッド参照 (ModelResponse::fromEntity) で呼ばれます
      */
     public static ModelResponse fromEntity(Model model) {
         return new ModelResponse(
                 model.getId(),
                 model.getName(),
-                // カテゴリがnullの場合のNullPointerExceptionを防止
-                model.getCategory() != null ? "TODO: Category Name" : "未分類",
+                // 修正: 実際のカテゴリ名を取得するように変更
+                model.getCategory() != null ? model.getCategory().getName() : "未分類",
                 model.getTotalQuantity()
         );
     }

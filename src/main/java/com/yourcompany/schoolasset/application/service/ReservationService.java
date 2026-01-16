@@ -14,11 +14,13 @@ import com.yourcompany.schoolasset.domain.shared.exception.ErrorCode;
 import com.yourcompany.schoolasset.domain.exception.BusinessException;
 import com.yourcompany.schoolasset.web.dto.ReservationRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -39,7 +41,7 @@ public class ReservationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED)); // または適切なNOT_FOUNDエラー
 
         // Repositoryから判断材料を集める
-        int activeLoans = loanRecordRepository.countActiveLoansByStudentId(studentId);
+        int activeLoans = loanRecordRepository.countActiveLoansByModelId(studentId);
         boolean hasOverdue = loanRecordRepository.existsOverdueByStudentId(studentId, LocalDateTime.now());
 
         // Domainに判断させる
@@ -58,7 +60,7 @@ public class ReservationService {
         // 3. 有効在庫(X)の計算
         // ==========================================
         int totalQuantity = model.getTotalQuantity();
-        int currentLoans = loanRecordRepository.countActiveLoansByModelName(model.getName());
+        int currentLoans = loanRecordRepository.countActiveLoansByModelId(model.getId());
         int overlappingReservations = reservationRepository.countOverlappingReservations(
                 model.getId(), request.startAt(), request.endAt());
 
@@ -89,20 +91,17 @@ public class ReservationService {
      */
     @Transactional
     public void approveReservation(Long reservationId, Long facultyId) {
-        // 1. 【取得】
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)); // TODO: 専用のエラーコード
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 
-        // 2. 【取得】承認を行う教員の情報を取得
-        // TODO [FAC-301] 教員情報の取得と存在チェック
         Faculty faculty = facultyRepository.findById(facultyId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_DISABLED));
 
-        // 2. 【ドメインへの委譲】
         reservation.approve(faculty);
 
-        // 3. 【永続化】
-        // TODO [TECH-DEBT] saveを明示的に呼ぶか、Dirty Checkingに任せるか検討
+        // ★ ここで明示的に保存！
         reservationRepository.save(reservation);
+
+        log.info("予約の承認が完了しました。予約ID: {}, ステータス: {}", reservationId, reservation.getStatus());
     }
 }

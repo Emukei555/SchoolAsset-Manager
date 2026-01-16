@@ -11,7 +11,7 @@ public interface ModelRepository extends JpaRepository<Model, Long> {
     // カテゴリIDやキーワードで絞り込み、ページネーションを返す
     @Query("SELECT m FROM Model m WHERE " +
             "(:categoryId IS NULL OR m.category.id = :categoryId) AND " +
-            "(:keyword IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "(:keyword IS NULL OR LOWER(m.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
     Page<Model> searchModels(
             @Param("categoryId") Long categoryId,
             @Param("keyword") String keyword,

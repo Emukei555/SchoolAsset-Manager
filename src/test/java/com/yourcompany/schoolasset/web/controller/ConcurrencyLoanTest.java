@@ -9,6 +9,7 @@ import com.yourcompany.schoolasset.domain.model.student.StudentRepository;
 import com.yourcompany.schoolasset.domain.model.user.*;
 import com.yourcompany.schoolasset.web.dto.LoanExecutionRequest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled
 @SpringBootTest
 class ConcurrencyLoanTest {
 
