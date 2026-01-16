@@ -1,5 +1,6 @@
 package com.yourcompany.schoolasset.infrastructure.security;
 
+import io.jsonwebtoken.Claims; // 追加
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -33,36 +34,33 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .subject(userDetails.getUsername())
-                .claim("role", userDetails.getUser().getRole().name()) // ロールも埋め込む
-                .claim("userId", userDetails.getUser().getId())        // IDも埋め込む
+                .claim("role", userDetails.getUser().getRole().name())
+                .claim("userId", userDetails.getUser().getId())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationInMs))
                 .signWith(key)
                 .compact();
     }
 
-    /**
-     * トークンの有効性を検証
-     */
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parser()
-                    .verifyWith(key)
-                    .build()
-                    .parseSignedClaims(authToken);
+            getClaims(authToken); // パースできれば有効とみなす
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // ログ出力などをここで行うと良い
             return false;
         }
     }
 
     public String getUsernameFromToken(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    // ★追加: トークンのペイロード（Claims）全体を取得するメソッド
+    public Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+                .getPayload();
     }
 }

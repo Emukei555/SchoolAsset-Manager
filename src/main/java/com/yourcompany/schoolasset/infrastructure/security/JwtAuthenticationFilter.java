@@ -1,15 +1,17 @@
 package com.yourcompany.schoolasset.infrastructure.security;
 
+import com.yourcompany.schoolasset.domain.model.user.Role;
+import com.yourcompany.schoolasset.domain.model.user.User;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j; // ログ用に追加
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -17,12 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // これが必要
+@Slf4j // ログ用
+@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
-    private final UserDetailsService userDetailsService;
+    // private final UserDetailsService userDetailsService; // 不要になるので削除またはコメントアウト
 
     @Override
     protected void doFilterInternal(
@@ -34,25 +37,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            // トークンがあり、かつ有効であれば認証情報をセットする
-            //TODO:ここは return "student@school.com"; でとうしており後々修正が必須
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                String email = tokenProvider.getUsernameFromToken(jwt);
+                // 1. トークンから情報を抽出（DBアクセスなし！）
+                Claims claims = tokenProvider.getClaims(jwt);
+                String email = claims.getSubject();
+                Long userId = claims.get("userId", Long.class);
+                String roleName = claims.get("role", String.class);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                // 2. Userオブジェクトを復元
+                User user = new User();
+                user.setId(userId);
+                user.setEmail(email);
+                user.setRole(Role.valueOf(roleName));
+                user.setPasswordHash(""); // パスワードは認証済みなので不要
 
-                // 認証トークンを作成（パスワードは不要なのでnull）
+                // 3. UserDetailsを作成
+                CustomUserDetails userDetails = new CustomUserDetails(user);
+
+                // 4. セキュリティコンテキストにセット
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // セキュリティコンテキストに設定（＝ログイン状態にする）
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception ex) {
-            // ログ出力など（今回はスルーして認証失敗させる）
-            logger.error("Could not set user authentication in security context", ex);
+            log.error("Could not set user authentication in security context", ex);
         }
 
         filterChain.doFilter(request, response);
