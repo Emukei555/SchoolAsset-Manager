@@ -28,18 +28,13 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF無効化（JWTなので不要）
-                .csrf(AbstractHttpConfigurer::disable)
-
-                // 認証ルールの設定
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ログインAPIなどは許可
-                        .requestMatchers("/api/v1/auth/**", "/error").permitAll()
-                        // Swagger UIなども許可（必要なら）
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                        // それ以外は全て認証必須
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Swagger関連のパスを許可
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
 
